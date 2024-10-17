@@ -1,0 +1,27 @@
+# Eclipse-specific files
+.classpath
+.project
+.settings/
+
+# Ignore bin/ folder for compiled classes
+/bin/
+
+# Ignore build/ folder
+/build/
+
+# OS-specific files
+.DS_Store  # macOS
+Thumbs.db  # Windows
+
+# Log files
+*.log
+
+# Ignore Java compiled class files
+*.class
+
+# Ignore any packaged JARs
+*.jar
+
+# Ignore personal IDE settings
+.idea/
+*.iml
