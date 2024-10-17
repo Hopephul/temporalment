@@ -35,6 +35,7 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 
+
 public class TApp {
 	
 	private Stage dispStage; //Display Stage: Primary Stage node used to display application to the user from the window...
