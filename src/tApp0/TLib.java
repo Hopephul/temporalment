@@ -3,9 +3,13 @@ package tApp0;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashMap;
+import java.util.Optional;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -40,8 +44,17 @@ public class TLib {
 		alarmFileMap.putIfAbsent(inputAlarm, aFilePath);
 	}
 	
+	public void libAGen(LocalDate inputDate, LocalTime inputTime, String inputMsg, String inputPath, boolean inputMuted, boolean inputFocused, ReFreq inputFreq) {
+		Alarm alarm = new Alarm(inputDate, inputTime, inputMsg, inputPath, inputMuted, inputFocused, inputFreq);
+		getAList().addAll(alarm);
+		getAListView().refresh();
+		
+		serializeAlarm(alarm);
+		
+	}
+	
 	public void removeAlarm(Alarm inputAlarm) {
-		String aFilePath = alarmFileMap.get(inputAlarm);
+		String aFilePath = this.alarmFileMap.get(inputAlarm);
 		if(aFilePath != null) {
 			File aFile = new File(aFilePath);
 			if(aFile.exists() && aFile.delete()) {
@@ -49,8 +62,8 @@ public class TLib {
 			} else {
 				TLog.log.config(aFilePath + " Deletion Failed!");
 			}
-			alarmFileMap.remove(inputAlarm);
-			aList.remove(inputAlarm);
+			this.alarmFileMap.remove(inputAlarm);
+			this.aList.remove(inputAlarm);
 		} else {
 			TLog.log.info("No Such Saved Alarm To Remove?*");
 		}
@@ -70,7 +83,7 @@ public class TLib {
 		}
 		try {
 			
-			String mFilePath = dFADirPath + File.separator + "aMapping.hmap";
+			String mFilePath = this.dFADirPath + File.separator + "aMapping.hmap";
 			
 			File aMap = new File(mFilePath);
 			
@@ -84,7 +97,7 @@ public class TLib {
 				
 			}
 			
-			HashMap<Alarm, String> aFileMap = alarmFileMap;
+			HashMap<Alarm, String> aFileMap = this.alarmFileMap;
 			
 			FileOutputStream aMapFile = new FileOutputStream(mFilePath);
 			
@@ -107,7 +120,7 @@ public class TLib {
 	}
 	
 	public void serializeAlarm(Alarm inputAlarm) {
-		File dir = new File(dFADirPath);
+		File dir = new File(this.dFADirPath);
 		
 		if(!dir.exists()) {
 			boolean dirCreated = dir.mkdirs();
@@ -119,13 +132,13 @@ public class TLib {
 			}
 		}
 		try {
-			FileOutputStream alrmFile = new FileOutputStream(dFADirPath + File.separator + inputAlarm.getAIdString() + ".alrm");
+			FileOutputStream alrmFile = new FileOutputStream(this.dFADirPath + File.separator + inputAlarm.getAIdString() + ".alrm");
 			ObjectOutputStream fileOutput = new ObjectOutputStream(alrmFile);
 			fileOutput.writeObject(inputAlarm);
 			fileOutput.close();
 			alrmFile.close();
 			mapAlarm(inputAlarm);
-			serializeAFileMap(alarmFileMap);
+			serializeAFileMap(this.alarmFileMap);
 			
 			TLog.log.config("Single Alarm Data Saved to File, Mapped, and Map Saved to File");
 		} catch(Exception serError) {
@@ -135,7 +148,7 @@ public class TLib {
 	}
 	
 	public void serializeAlarms(ObservableList<Alarm> inputList) {
-		File dir = new File(dFADirPath);
+		File dir = new File(this.dFADirPath);
 		
 		if(!dir.exists()) {
 			boolean dirCreated = dir.mkdirs();
@@ -150,11 +163,11 @@ public class TLib {
 				for(int i = 0; i < inputList.size(); i++) {
 					Alarm alarm = inputList.get(i);
 					
-					File sAPath = new File(dFADirPath + File.separator + alarm.getAIdString() + ".alrm");
+					File sAPath = new File(this.dFADirPath + File.separator + alarm.getAIdString() + ".alrm");
 					
 					if(!sAPath.exists()) {
 						
-						FileOutputStream alrmFile = new FileOutputStream(dFADirPath + File.separator + alarm.getAIdString() + ".alrm");
+						FileOutputStream alrmFile = new FileOutputStream(this.dFADirPath + File.separator + alarm.getAIdString() + ".alrm");
 						
 						ObjectOutputStream fileOutput = new ObjectOutputStream(alrmFile);
 						
@@ -179,9 +192,83 @@ public class TLib {
 		}
 	}
 	
+	private boolean aInitChk(Alarm inputAlarm) {
+		boolean awsr;
+		if(inputAlarm.getADateTime().isBefore(Tkpr.getTNow()) && !(inputAlarm.getAReFreq() == ReFreq.SINGLE)) {
+			switch (inputAlarm.getAReFreq()) {
+				case ReFreq.DAILY:
+					libAGen(inputAlarm.getADate().plusDays(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					break;
+				case ReFreq.WEEKLY:
+					libAGen(inputAlarm.getADate().plusWeeks(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					break;
+				case ReFreq.BIWEEKLY:
+					libAGen(inputAlarm.getADate().plusWeeks(2), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					break;
+				case ReFreq.MONTHLY:
+					libAGen(inputAlarm.getADate().plusMonths(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					break;
+				case ReFreq.QUARTERLY:
+					libAGen(inputAlarm.getADate().plusMonths(3), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					break;
+				case ReFreq.ANNUALLY:
+					libAGen(inputAlarm.getADate().plusYears(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					break;
+				default:
+					
+			}
+			
+			
+			else if(inputAlarm.getAReFreq() == ReFreq.MONTHLY) {
+				libAGen(inputAlarm.getADate().plusMonths(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+			} else if(inputAlarm.getAReFreq() == ReFreq.QUARTERLY) {
+				libAGen(inputAlarm.getADate().plusMonths(3), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+			} else if(inputAlarm.getAReFreq() == ReFreq.ANNUALLY) {
+				libAGen(inputAlarm.getADate().plusYears(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+			}
+		}
+	}
+	
+	public void dSerializeAlarm() {
+		File aDir = new File(this.dFADirPath);
+		if(aDir.exists() && aDir.isDirectory()) {
+			File[] aFiles = aDir.listFiles();
+			if(aFiles != null) {
+				for(File aFile : aFiles) {
+					Optional<Alarm> alarm = readInAlarm(aFile);
+				}
+			}
+		}
+	}
+	
+	private Optional<Alarm> readInAlarm(File inputFile) {
+		Alarm alarmIn;
+		try {
+			if(inputFile.isFile() && inputFile.getName().endsWith(".alrm")) {
+				FileInputStream fileIn = new FileInputStream(inputFile);
+				ObjectInputStream objectIn = new ObjectInputStream(fileIn);
+				try{
+					alarmIn = (Alarm) objectIn.readObject();
+				} catch(ClassNotFoundException classCastError) {
+					alarmIn = null;
+				}
+				objectIn.close();
+				fileIn.close();
+				
+				return Optional.of(alarmIn);
+			} else {
+				return Optional.empty();
+			}
+		} catch(IOException readInError) {
+			System.err.println("Unable to Read Input File at " + inputFile.getPath() + "\n" + readInError.getMessage());
+			return Optional.empty();
+		}
+	}
+	
+	
 	public void deserializeAlarms() {
 		try {
-			File aDir = new File(dFADirPath);
+			File aDir = new File(this.dFADirPath);
 			if(aDir.exists() && aDir.isDirectory()) {
 				File[] aDats = aDir.listFiles();
 				if(aDats != null) {
@@ -189,24 +276,36 @@ public class TLib {
 						if(aDat.isFile() && aDat.getName().endsWith(".alrm")) {
 							FileInputStream aDatIn = new FileInputStream(aDat);
 							ObjectInputStream aIn = new ObjectInputStream(aDatIn);
-							Alarm alarm = (Alarm) aIn.readObject();
+							Alarm inputAlarm = (Alarm) aIn.readObject();
 							aIn.close();
 							aDatIn.close();
-							mapAlarm(alarm);
-							if(!aList.contains(alarm)) {
-								aList.addAll(alarm);
+							mapAlarm(inputAlarm);
+							if(!this.aList.contains(inputAlarm)) {
+								this.aList.addAll(inputAlarm);
 							} else {
 								continue;
 							}
-							if(alarm.getADateTime().isBefore(Tkpr.getTNow())) {
-								if(alarm.getAReFreq() != ReFreq.SINGLE) {
-									TApp.getAlarmVw().aReGen(alarm);
+							if(inputAlarm.getADateTime().isBefore(Tkpr.getTNow())) {
+								if(inputAlarm.getAReFreq() != ReFreq.SINGLE) {
+									if(inputAlarm.getAReFreq() == ReFreq.DAILY) {
+										libAGen(inputAlarm.getADate().plusDays(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+									} else if(inputAlarm.getAReFreq() == ReFreq.WEEKLY) {
+										libAGen(inputAlarm.getADate().plusWeeks(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+									} else if(inputAlarm.getAReFreq() == ReFreq.BIWEEKLY) {
+										libAGen(inputAlarm.getADate().plusWeeks(2), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+									} else if(inputAlarm.getAReFreq() == ReFreq.MONTHLY) {
+										libAGen(inputAlarm.getADate().plusMonths(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+									} else if(inputAlarm.getAReFreq() == ReFreq.QUARTERLY) {
+										libAGen(inputAlarm.getADate().plusMonths(3), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+									} else if(inputAlarm.getAReFreq() == ReFreq.ANNUALLY) {
+										libAGen(inputAlarm.getADate().plusYears(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+									} 
 								} else {
 									continue;
 								}
-								removeAlarm(alarm);
+								removeAlarm(inputAlarm);
 							}
-							alarm.freshAAudio();
+							inputAlarm.freshAAudio();
 						} else {
 							continue;
 						}
@@ -253,54 +352,54 @@ public class TLib {
 	}
 	
 	public String getDFAAudioPath() {
-		return dFAAudioPath;
+		return this.dFAAudioPath;
 	}
 	
 	public String getDFCDAudioPath() {
-		return dFCDAudioPath;
+		return this.dFCDAudioPath;
 	}
 	
 	public String getDFClickAudioPath() {
-		return dFClickAudioPath;
+		return this.dFClickAudioPath;
 	}
 	
 	public String getDFAcceptAudioPath() {
-		return dFAcceptAudioPath;
+		return this.dFAcceptAudioPath;
 	}
 	
 	public String getDFRejectAudioPath() {
-		return dFRejectAudioPath;
+		return this.dFRejectAudioPath;
 	}
 	
 	public TLib() {
 		
 		try {
-			File aMap = new File(dFADirPath + File.separator + "aMapping.hmap");
+			File aMap = new File(this.dFADirPath + File.separator + "aMapping.hmap");
 			if(aMap.exists() && aMap.isFile()) {
 				FileInputStream aMapDatIn = new FileInputStream(aMap);
 				ObjectInputStream aMapIn = new ObjectInputStream(aMapDatIn);
-				alarmFileMap = (HashMap<Alarm, String>) aMapIn.readObject();
+				this.alarmFileMap = (HashMap<Alarm, String>) aMapIn.readObject();
 				aMapIn.close();
 				aMapDatIn.close();
 			} else {
-				alarmFileMap = new HashMap<>();
+				this.alarmFileMap = new HashMap<>();
 			}
 		} catch(Exception loadError) {
 			TLog.log.info("Failed AlarmFileMap Initilization Loading");
 			loadError.printStackTrace();
 		}
 		
-		aList = FXCollections.observableArrayList();
-		cUList = FXCollections.observableArrayList();
-		aCDList = FXCollections.observableArrayList();
-		iCDList = FXCollections.observableArrayList();
+		this.aList = FXCollections.observableArrayList();
+		this.cUList = FXCollections.observableArrayList();
+		this.aCDList = FXCollections.observableArrayList();
+		this.iCDList = FXCollections.observableArrayList();
 		
-		aListView = new ListView<>(aList);
-		cUListView = new ListView<>(cUList);
-		aCDListView = new ListView<>(aCDList);
-		iCDListView = new ListView<>(iCDList);
+		this.aListView = new ListView<>(this.aList);
+		this.cUListView = new ListView<>(this.cUList);
+		this.aCDListView = new ListView<>(this.aCDList);
+		this.iCDListView = new ListView<>(this.iCDList);
 		
-		tSet = new TSet();
+		this.tSet = new TSet();
 	}
 
 }

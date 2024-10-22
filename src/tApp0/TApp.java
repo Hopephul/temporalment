@@ -35,7 +35,6 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 
-
 public class TApp {
 	
 	private Stage dispStage; //Display Stage: Primary Stage node used to display application to the user from the window...
@@ -65,8 +64,13 @@ public class TApp {
 		TLog.log.config("TentPane set to Alarms");
 	}
 	
-	public static AlarmVw getAlarmVw() {
-		return alrmStack;
+	public AlarmVw getAlarmVw() {
+		if(alrmStack != null) {
+			return alrmStack;
+		} else {
+			alrmStack = new AlarmVw();
+			return alrmStack;
+		}
 	}
 	
 	public void getTimerTent() {
@@ -506,10 +510,10 @@ public class TApp {
 			aPBox.setAlignment(Pos.TOP_CENTER);
 			this.setAlignment(Pos.TOP_CENTER);
 			
-			aChkr();
 			tLib.deserializeAlarms();
 			freshAP();
 			tLib.getAListView().refresh();
+			aChkr();
 			
 			TLog.log.config("AlarmVw Class Initilization Completed");
 			
@@ -1409,11 +1413,65 @@ public class TApp {
 			
 		}
 		
-		public class SCDAListCell extends ListCell<CntDn> {
+		public class ActCDVw extends VBox {
+			
+			private Text actMsgText; //Displays Assigned Message String
+			private Text actTimeText; //Displays Current Time Field Values
+			private Text actStatText; //Displays Current State Message
+			private Button actPPButt; //Play Pause Button
+			private Button actSRButt; //Stop Reset Button
+			private Button actDlButt; //Deletion Button
+			private Button actTAButt; //Toggle Audio Button
+			private Button actTFButt; //Toggle Focus Button
+			private Button actEdButt; //Edit Button
+			private Timeline actTimeLine; //Runtime Animation Timeline
 			
 		}
 		
-		public class SCDIListCell extends ListCell<CntDn> {
+		public class IdlCDVw extends VBox {
+			
+			private HBox idlHeadBox; //Contains idlMsgBox && idlDlBox
+			private HBox idlBodyBox; //Contains the idlTimeBox && idlToggBox
+			private HBox idlFootBox; //Contains the idlPlBox && idlClBox
+			private HBox idlMsgBox; //Contains idlMsgText
+			private HBox idlDlBox; //Contains idlDlButt
+			private HBox idlTimeBox; //Contains idlTimeText && idlStatText
+			private HBox idlToggBox; //Contains idlTAText && idlTFText
+			private HBox idlPlBox; //Contains idlPlButt
+			private HBox idlClBox; //Contains idlEdButt && idlTAButt && idlTFButt
+			
+			private Text idlMsgText; //Displays Assigned Message String
+			private Text idlTimeText; //Displays Set Time Field Values
+			private Text idlStatText; //Displays the Idle State Message
+			private Text idlTAText; //Displays the Current Audio Setting
+			private Text idlTFText; //Displays the Current Focus Setting
+			private Button idlPlButt; //Play Button
+			private Button idlEdButt; //Edit Button
+			private Button idlTAButt; //Toggle Audio Button
+			private Button idlTFButt; //Toggle Focus Button
+			private Button idlDlButt; //Deletion Button
+			
+			public IdlCDVw(CntDn inputCntDn) {
+				
+				if(inputCntDn != null) {
+					
+					idlMsgText = new Text()
+					
+				} else {
+					
+					
+					
+				}
+				
+			}
+			
+		}
+		
+		public class ActCDListCell extends ListCell<CntDn> {
+			
+		}
+		
+		public class IdlCDListCell extends ListCell<CntDn> {
 			
 		}
 		

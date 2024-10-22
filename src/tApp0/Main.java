@@ -6,14 +6,14 @@ import javafx.stage.Stage;
 
 public class Main extends Application {
 	
-	public TApp tApp;
+	//public TApp tApp;
 	
 	@Override
 	public void start(Stage mainStage) {
 		
 		try {
-			tApp = new TApp();
 			
+			TApp tApp = new TApp();
 			mainStage = tApp.getDispStage();
 			mainStage.show();
 			

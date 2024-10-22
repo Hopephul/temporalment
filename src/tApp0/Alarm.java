@@ -14,6 +14,10 @@ public class Alarm implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = -3043523911927099761L;
+	/**
+	 * 
+	 */
+	
 	private LocalDateTime aInitDateTime; //Stores the original DateTime calculated at time of creation. This LocalDateTime once assigned a value is unchanging...
 	private LocalDateTime aDateTime; //Stores the working DateTime calculated as needed for the next Alarm Activation. This value will change as the situation requires...
 	private LocalDate aDate; //The Date part of the LocalDateTime objects
@@ -248,6 +252,7 @@ public class Alarm implements Serializable {
 	}
 	
 	public void aAudioPlay() {
+		this.aAudioPlayer.setOnEndOfMedia(() -> this.aAudioPlayer.seek(this.aAudioPlayer.getStartTime()));
 		this.aAudioPlayer.play();
 	}
 	

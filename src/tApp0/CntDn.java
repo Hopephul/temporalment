@@ -45,6 +45,10 @@ public class CntDn implements Serializable {
 		}
 	}
 	
+	public void setCDMsgString(String inputString) {
+		this.cDMsgString = new String(inputString);
+	}
+	
 	public void setCDStat(CDStat inputCDStat) {
 		this.cDStat = inputCDStat;
 	}
