@@ -389,7 +389,7 @@ public class TApp {
 			tLib.getAList().addAll(alarm);
 			tLib.getAListView().refresh();
 			freshAP();
-			tLib.serializeAlarm(alarm);
+			tLib.aSerialize(alarm);
 			
 		}
 		
@@ -440,7 +440,7 @@ public class TApp {
 			
 			aReGen(eAlarm);
 			
-			tLib.removeAlarm(eAlarm);
+			tLib.aRemove(eAlarm);
 			aSort();
 			tLib.getAListView().refresh();
 			freshAP();
@@ -454,7 +454,7 @@ public class TApp {
 				rAlarm.aAudioStop();
 			}
 			
-			tLib.removeAlarm(rAlarm);
+			tLib.aRemove(rAlarm);
 			aSort();
 			tLib.getAListView().refresh();
 			freshAP();
@@ -510,7 +510,7 @@ public class TApp {
 			aPBox.setAlignment(Pos.TOP_CENTER);
 			this.setAlignment(Pos.TOP_CENTER);
 			
-			tLib.deserializeAlarms();
+			tLib.dSerializeAlarms();
 			freshAP();
 			tLib.getAListView().refresh();
 			aChkr();
@@ -1453,15 +1453,15 @@ public class TApp {
 			
 			public IdlCDVw(CntDn inputCntDn) {
 				
-				if(inputCntDn != null) {
+				//if(inputCntDn != null) {
 					
-					idlMsgText = new Text()
+					//idlMsgText = new Text()
 					
-				} else {
+				//} else {
 					
 					
 					
-				}
+				//}
 				
 			}
 			

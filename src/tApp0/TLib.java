@@ -19,10 +19,10 @@ public class TLib {
 	
 	private HashMap<Alarm, String> alarmFileMap;
 	
-	private ObservableList<Alarm> aList; //Alarm List
-	private ObservableList<CntUp> cUList; //Count Up List
-	private ObservableList<CntDn> aCDList; //Active Count Down List
-	private ObservableList<CntDn> iCDList; //Idle Count Down List
+	private ObservableList<Alarm> aListing; //Alarm List
+	private ObservableList<CntUp> cUListing; //Count Up List
+	private ObservableList<CntDn> aCDListing; //Active Count Down List
+	private ObservableList<CntDn> iCDListing; //Idle Count Down List
 	
 	private ListView<Alarm> aListView; //Alarm List View
 	private ListView<CntUp> cUListView; //Count Up List View
@@ -38,301 +38,202 @@ public class TLib {
 	private String dFRejectAudioPath = new String(); //Reject aka Negative Audio File Path (Application Default Value)
 	private String dFADirPath = new String("libs" + File.separator + "alarm");
 	
-	public void mapAlarm(Alarm inputAlarm) {
-		String aFilePath = dFADirPath + File.separator + inputAlarm.getAIdString() + ".alrm";
-		
-		alarmFileMap.putIfAbsent(inputAlarm, aFilePath);
+	public void aList(Alarm inputAlarm) {
+	    // Ensure no duplicate alarms are added based on their ID
+	    Optional<Alarm> existingAlarm = aListing.stream()
+	        .filter(alarm -> alarm.getAIdString().equals(inputAlarm.getAIdString()))
+	        .findFirst();
+	    
+	    if (existingAlarm.isEmpty()) {
+	        aListing.add(inputAlarm);
+	        aListView.refresh();
+	    } else {
+	        // Alarm with this ID already exists, so do not add it again
+	        System.out.println("Duplicate alarm detected, skipping: " + inputAlarm.getAIdString());
+	    }
 	}
+
 	
 	public void libAGen(LocalDate inputDate, LocalTime inputTime, String inputMsg, String inputPath, boolean inputMuted, boolean inputFocused, ReFreq inputFreq) {
 		Alarm alarm = new Alarm(inputDate, inputTime, inputMsg, inputPath, inputMuted, inputFocused, inputFreq);
-		getAList().addAll(alarm);
-		getAListView().refresh();
-		
-		serializeAlarm(alarm);
+		aList(alarm);
+		aSerialize(alarm);
 		
 	}
 	
-	public void removeAlarm(Alarm inputAlarm) {
-		String aFilePath = this.alarmFileMap.get(inputAlarm);
-		if(aFilePath != null) {
-			File aFile = new File(aFilePath);
-			if(aFile.exists() && aFile.delete()) {
-				TLog.log.config(aFilePath + " Deletion Sucessful");
-			} else {
-				TLog.log.config(aFilePath + " Deletion Failed!");
-			}
-			this.alarmFileMap.remove(inputAlarm);
-			this.aList.remove(inputAlarm);
+	public void aRemove(Alarm inputAlarm) {
+		String aFilePath = new String(this.dFADirPath + File.separator + inputAlarm.getAIdString() + ".alrm");
+		File aFile = new File(aFilePath);
+		if(aFile.exists() && aFile.delete()) {
+			TLog.log.info(aFilePath + " Deletion Sucessful");
 		} else {
-			TLog.log.info("No Such Saved Alarm To Remove?*");
+			TLog.log.info(aFilePath + " Deletion Failed!");
 		}
+		this.aListing.remove(inputAlarm);
 	}
 	
-	public void serializeAFileMap(HashMap<Alarm, String> inputMap) {
-		File dir = new File(dFADirPath);
-		
-		if(!dir.exists()) {
-			boolean dirCreated = dir.mkdirs();
-			if(dirCreated) {
-				TLog.log.config("Alarm Serialization Directory Created");
-			} else {
-				TLog.log.config("Application couldn't create the Directory @: " + dFADirPath);
-				return;
-			}
-		}
-		try {
-			
-			String mFilePath = this.dFADirPath + File.separator + "aMapping.hmap";
-			
-			File aMap = new File(mFilePath);
-			
-			if(aMap.exists() && aMap.delete()) {
-				
-				TLog.log.config("Alarm Mapping Data Cleared");
-				
-			} else {
-				
-				TLog.log.config("Alarm Mapping Data Absent");
-				
-			}
-			
-			HashMap<Alarm, String> aFileMap = this.alarmFileMap;
-			
-			FileOutputStream aMapFile = new FileOutputStream(mFilePath);
-			
-			ObjectOutputStream fileOutput = new ObjectOutputStream(aMapFile);
-			
-			fileOutput.writeObject(aFileMap);
-			
-			fileOutput.close();
-			aMapFile.close();
-			
-			TLog.log.config("Alarm Mapping Data Serialized");
-			
-		} catch(Exception serError) {
-			TLog.log.info("Serilization Error Encountered!");
-			serError.printStackTrace();
-		}
-		
-		
-		
-	}
-	
-	public void serializeAlarm(Alarm inputAlarm) {
+	private void aDirChk() {
+		boolean dirCreated = false;
 		File dir = new File(this.dFADirPath);
-		
 		if(!dir.exists()) {
-			boolean dirCreated = dir.mkdirs();
+			dirCreated = dir.mkdirs();
 			if(dirCreated) {
-				TLog.log.config("Alarm Serialization Directory Created");
-			} else {
-				TLog.log.config("Application couldn't create the Directory @: " + dFADirPath);
+				TLog.log.info("Alarm Serialization Directory was Absent but Created Sucsessfully");
 				return;
-			}
-		}
-		try {
-			FileOutputStream alrmFile = new FileOutputStream(this.dFADirPath + File.separator + inputAlarm.getAIdString() + ".alrm");
-			ObjectOutputStream fileOutput = new ObjectOutputStream(alrmFile);
-			fileOutput.writeObject(inputAlarm);
-			fileOutput.close();
-			alrmFile.close();
-			mapAlarm(inputAlarm);
-			serializeAFileMap(this.alarmFileMap);
-			
-			TLog.log.config("Single Alarm Data Saved to File, Mapped, and Map Saved to File");
-		} catch(Exception serError) {
-			TLog.log.info("Serilization Error Encountered!");
-			serError.printStackTrace();
-		}
-	}
-	
-	public void serializeAlarms(ObservableList<Alarm> inputList) {
-		File dir = new File(this.dFADirPath);
-		
-		if(!dir.exists()) {
-			boolean dirCreated = dir.mkdirs();
-			if(dirCreated) {
-				TLog.log.config("Alarm Serialization Directory Created");
 			} else {
-				TLog.log.config("Application couldn't create the Directory @: " + dFADirPath);
+				TLog.log.info("Alarm Serialization Directory is Absent and couldn't be Created!");
 				return;
 			}
 		} else {
-			try {
-				for(int i = 0; i < inputList.size(); i++) {
-					Alarm alarm = inputList.get(i);
-					
-					File sAPath = new File(this.dFADirPath + File.separator + alarm.getAIdString() + ".alrm");
-					
-					if(!sAPath.exists()) {
-						
-						FileOutputStream alrmFile = new FileOutputStream(this.dFADirPath + File.separator + alarm.getAIdString() + ".alrm");
-						
-						ObjectOutputStream fileOutput = new ObjectOutputStream(alrmFile);
-						
-						fileOutput.writeObject(alarm);
-						
-						fileOutput.close();
-						alrmFile.close();
-						
-						TLog.log.info("Alarm(s) Data Saved");
-						
-					} else {
-						
-						TLog.log.info("Alarm Data Already Saved");
-						
-					}
-					
-				}
-			} catch(Exception serError) {
-				TLog.log.info("Serilization Error Encountered!");
-				serError.printStackTrace();
-			}
+			TLog.log.info("Alarm Serialization Directory Verified to Exist");
+			return;
 		}
 	}
 	
-	private boolean aInitChk(Alarm inputAlarm) {
-		boolean awsr;
+	private Boolean aFileChk(File inputFile) {
+		if(inputFile.isFile() && inputFile.getName().endsWith(".alrm")) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	private Boolean aInitChk(Alarm inputAlarm) {
+		boolean awsr = false;
 		if(inputAlarm.getADateTime().isBefore(Tkpr.getTNow()) && !(inputAlarm.getAReFreq() == ReFreq.SINGLE)) {
 			switch (inputAlarm.getAReFreq()) {
 				case ReFreq.DAILY:
 					libAGen(inputAlarm.getADate().plusDays(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					aRemove(inputAlarm);
+					awsr = false;
 					break;
 				case ReFreq.WEEKLY:
 					libAGen(inputAlarm.getADate().plusWeeks(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					aRemove(inputAlarm);
+					awsr = false;
 					break;
 				case ReFreq.BIWEEKLY:
 					libAGen(inputAlarm.getADate().plusWeeks(2), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					aRemove(inputAlarm);
+					awsr = false;
 					break;
 				case ReFreq.MONTHLY:
 					libAGen(inputAlarm.getADate().plusMonths(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					aRemove(inputAlarm);
+					awsr = false;
 					break;
 				case ReFreq.QUARTERLY:
 					libAGen(inputAlarm.getADate().plusMonths(3), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					aRemove(inputAlarm);
+					awsr = false;
 					break;
 				case ReFreq.ANNUALLY:
 					libAGen(inputAlarm.getADate().plusYears(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+					aRemove(inputAlarm);
+					awsr = false;
 					break;
 				default:
-					
+					aRemove(inputAlarm);
+					awsr = false;
+					break;
 			}
+		} else if(inputAlarm.getADateTime().isBefore(Tkpr.getTNow()) && (inputAlarm.getAReFreq() == ReFreq.SINGLE)) {
+			aRemove(inputAlarm);
+			awsr = false;
+		} else {
 			
-			
-			else if(inputAlarm.getAReFreq() == ReFreq.MONTHLY) {
-				libAGen(inputAlarm.getADate().plusMonths(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
-			} else if(inputAlarm.getAReFreq() == ReFreq.QUARTERLY) {
-				libAGen(inputAlarm.getADate().plusMonths(3), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
-			} else if(inputAlarm.getAReFreq() == ReFreq.ANNUALLY) {
-				libAGen(inputAlarm.getADate().plusYears(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
+			awsr = true;
+		}
+		
+		return awsr;
+	}
+	
+	public void aSerialize(Alarm inputAlarm) {
+		aDirChk();
+		String aFilePath = new String(this.dFADirPath + File.separator + inputAlarm.getAIdString() + ".alrm");
+		try(FileOutputStream alrmFile = new FileOutputStream(aFilePath);
+			ObjectOutputStream fileOutput = new ObjectOutputStream(alrmFile)) {
+			fileOutput.writeObject(inputAlarm);
+			TLog.log.info("Alarm with ID:" + inputAlarm.getAIdString() + " Serialized to File System");
+		} catch(IOException aSerError) {
+			TLog.log.info("Alarm Serilization Error Encountered!\n Alarm ID:" + inputAlarm.getAIdString() + "\n---------------\n" + aSerError.getStackTrace());
+		}
+	}
+	
+	public void aSerializeAll(ObservableList<Alarm> inputList) {
+		aDirChk();
+		for(int i = 0; i < inputList.size(); i++) {
+			Alarm iAlarm = inputList.get(i);
+			String iFilePath = new String(this.dFADirPath + File.separator + iAlarm.getAIdString() + ".alrm");
+			File iFile = new File(iFilePath);
+			try(FileOutputStream alrmFile = new FileOutputStream(iFilePath);
+				ObjectOutputStream fileOutput = new ObjectOutputStream(alrmFile)) {
+				if(!iFile.exists()) {
+					fileOutput.writeObject(iAlarm);
+					TLog.log.info("Alarm with ID:" + iAlarm.getAIdString() + " Serialized to File System");
+				} else {
+					TLog.log.info("Alarm with ID:" + iAlarm.getAIdString() + " already Serialized to File System");
+				}
+			} catch(IOException aSerErrors) {
+				TLog.log.info("Alarm Serialization Error Encountered!\n Alarm ID:" + iAlarm.getAIdString() + "\n---------------\n" + aSerErrors.getStackTrace());
 			}
 		}
 	}
 	
-	public void dSerializeAlarm() {
-		File aDir = new File(this.dFADirPath);
-		if(aDir.exists() && aDir.isDirectory()) {
-			File[] aFiles = aDir.listFiles();
-			if(aFiles != null) {
-				for(File aFile : aFiles) {
-					Optional<Alarm> alarm = readInAlarm(aFile);
+	private Alarm readInAlarm(File inputFile) {
+		Alarm alarmIn = null;
+		if(aFileChk(inputFile)) {
+			try(FileInputStream fileIn = new FileInputStream(inputFile);
+				ObjectInputStream objectIn = new ObjectInputStream(fileIn)) {
+				Object aObj = objectIn.readObject();
+				if(aObj instanceof Alarm) {
+					alarmIn = (Alarm) aObj;
+				} else {
+					System.err.println("Error: The object being read is not of type 'Alarm'!");	
 				}
-			}
-		}
-	}
-	
-	private Optional<Alarm> readInAlarm(File inputFile) {
-		Alarm alarmIn;
-		try {
-			if(inputFile.isFile() && inputFile.getName().endsWith(".alrm")) {
-				FileInputStream fileIn = new FileInputStream(inputFile);
-				ObjectInputStream objectIn = new ObjectInputStream(fileIn);
-				try{
-					alarmIn = (Alarm) objectIn.readObject();
-				} catch(ClassNotFoundException classCastError) {
-					alarmIn = null;
-				}
-				objectIn.close();
-				fileIn.close();
+			} catch(Exception e) {
 				
-				return Optional.of(alarmIn);
-			} else {
-				return Optional.empty();
 			}
-		} catch(IOException readInError) {
-			System.err.println("Unable to Read Input File at " + inputFile.getPath() + "\n" + readInError.getMessage());
-			return Optional.empty();
 		}
+		return alarmIn;
 	}
 	
-	
-	public void deserializeAlarms() {
-		try {
-			File aDir = new File(this.dFADirPath);
-			if(aDir.exists() && aDir.isDirectory()) {
-				File[] aDats = aDir.listFiles();
-				if(aDats != null) {
-					for(File aDat : aDats) {
-						if(aDat.isFile() && aDat.getName().endsWith(".alrm")) {
-							FileInputStream aDatIn = new FileInputStream(aDat);
-							ObjectInputStream aIn = new ObjectInputStream(aDatIn);
-							Alarm inputAlarm = (Alarm) aIn.readObject();
-							aIn.close();
-							aDatIn.close();
-							mapAlarm(inputAlarm);
-							if(!this.aList.contains(inputAlarm)) {
-								this.aList.addAll(inputAlarm);
-							} else {
-								continue;
-							}
-							if(inputAlarm.getADateTime().isBefore(Tkpr.getTNow())) {
-								if(inputAlarm.getAReFreq() != ReFreq.SINGLE) {
-									if(inputAlarm.getAReFreq() == ReFreq.DAILY) {
-										libAGen(inputAlarm.getADate().plusDays(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
-									} else if(inputAlarm.getAReFreq() == ReFreq.WEEKLY) {
-										libAGen(inputAlarm.getADate().plusWeeks(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
-									} else if(inputAlarm.getAReFreq() == ReFreq.BIWEEKLY) {
-										libAGen(inputAlarm.getADate().plusWeeks(2), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
-									} else if(inputAlarm.getAReFreq() == ReFreq.MONTHLY) {
-										libAGen(inputAlarm.getADate().plusMonths(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
-									} else if(inputAlarm.getAReFreq() == ReFreq.QUARTERLY) {
-										libAGen(inputAlarm.getADate().plusMonths(3), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
-									} else if(inputAlarm.getAReFreq() == ReFreq.ANNUALLY) {
-										libAGen(inputAlarm.getADate().plusYears(1), inputAlarm.getATime(), inputAlarm.getAMsgString(), inputAlarm.getAAudioPath(), inputAlarm.isMuted(), inputAlarm.isFocused(), inputAlarm.getAReFreq());
-									} 
-								} else {
-									continue;
-								}
-								removeAlarm(inputAlarm);
-							}
-							inputAlarm.freshAAudio();
-						} else {
-							continue;
+	public void dSerializeAlarms() {
+		File aDir = new File(this.dFADirPath); //Set up the Alarm Directory File Path
+		if(aDir.exists() && aDir.isDirectory()) { //Make sure it exists and is a Directory
+			File[] aFiles = aDir.listFiles(); //Make an array of type File and populate it with the Files within the Directory we just defined if there are any
+			if(aFiles != null) { //If the directory was empty it'd be null but if the array isn't null then...
+				for(File aFile : aFiles) { //For every File (each file to be referenced as "aFile") of the array we've just defined then we will do the following...
+					Alarm alarm = readInAlarm(aFile); //Creates an Alarm instance by passing the current aFile to the readInAlarm() method
+					if(alarm != null) { //If the readInAlarm() method did not return null
+						if(aInitChk(alarm)) { //Check if the Alarm instance is programmed to have already gone off and if it was not then:
+							aList(alarm); //Add the Alarm instance to the aListing ObservableList<Alarm>
+							alarm.freshAAudio();
+						} else { //If the Alarm instance was programmed to have already gone off then just restart this loop with the next file. (The method used to check will remove the Alarm instance, the Alarm mapping, the Alarm listing, and the Alarm file from the device so that it wont be encountered again so no need to worry about this...)
+							continue; 
 						}
-						
+					} else { //Similarly to the aInitChk() method; from the readInAlarm() method - if it returns a null value due to the file not being a .alrm file or something of the like then just start with the next file in the array and ignore any problem that this might be hinting at. (This accounts for user medaling in the file system or if it was trying to read the hmapping file etc...)
+						continue;
 					}
 				}
 			}
-		} catch(Exception deserError) {
-			TLog.log.info("Serilization Error Encountered!");
-			deserError.printStackTrace();
 		}
 	}
 	
 	public ObservableList<Alarm> getAList() {
-		return this.aList;
+		return this.aListing;
 	}
 	
 	public ObservableList<CntUp> getCUList() {
-		return this.cUList;
+		return this.cUListing;
 	}
 	
 	public ObservableList<CntDn> getACDList() {
-		return this.aCDList;
+		return this.aCDListing;
 	}
 	
 	public ObservableList<CntDn> getICDList() {
-		return this.iCDList;
+		return this.iCDListing;
 	}
 	
 	public ListView<Alarm> getAListView() {
@@ -373,31 +274,17 @@ public class TLib {
 	
 	public TLib() {
 		
-		try {
-			File aMap = new File(this.dFADirPath + File.separator + "aMapping.hmap");
-			if(aMap.exists() && aMap.isFile()) {
-				FileInputStream aMapDatIn = new FileInputStream(aMap);
-				ObjectInputStream aMapIn = new ObjectInputStream(aMapDatIn);
-				this.alarmFileMap = (HashMap<Alarm, String>) aMapIn.readObject();
-				aMapIn.close();
-				aMapDatIn.close();
-			} else {
-				this.alarmFileMap = new HashMap<>();
-			}
-		} catch(Exception loadError) {
-			TLog.log.info("Failed AlarmFileMap Initilization Loading");
-			loadError.printStackTrace();
-		}
-		
-		this.aList = FXCollections.observableArrayList();
-		this.cUList = FXCollections.observableArrayList();
-		this.aCDList = FXCollections.observableArrayList();
-		this.iCDList = FXCollections.observableArrayList();
-		
-		this.aListView = new ListView<>(this.aList);
-		this.cUListView = new ListView<>(this.cUList);
-		this.aCDListView = new ListView<>(this.aCDList);
-		this.iCDListView = new ListView<>(this.iCDList);
+		this.aListing = FXCollections.observableArrayList();
+		this.cUListing = FXCollections.observableArrayList();
+		this.aCDListing = FXCollections.observableArrayList();
+		this.iCDListing = FXCollections.observableArrayList();
+
+		this.aListView = new ListView<>(this.aListing);
+		this.cUListView = new ListView<>(this.cUListing);
+		this.aCDListView = new ListView<>(this.aCDListing);
+		this.iCDListView = new ListView<>(this.iCDListing);
+
+		dSerializeAlarms();
 		
 		this.tSet = new TSet();
 	}
